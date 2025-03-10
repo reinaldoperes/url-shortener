@@ -27,4 +27,10 @@ urlRoutes.get(
   asyncHandler(urlController.getStats.bind(urlController)),
 );
 
+urlRoutes.put(
+  "/update-slug/:urlId",
+  authMiddleware,
+  asyncHandler(urlController.updateSlug.bind(urlController)),
+);
+
 export { urlRoutes };
