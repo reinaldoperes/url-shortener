@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from "express";
 import { UrlController } from "../controllers/UrlController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
+import { rateLimiter } from "../middleware/rateLimitMiddleware.js";
 
 const urlRoutes = express.Router();
 const urlController = UrlController;
@@ -12,6 +13,7 @@ const asyncHandler =
 urlRoutes.post(
   "/shorten",
   authMiddleware,
+  rateLimiter,
   asyncHandler(urlController.shorten.bind(urlController)),
 );
 
