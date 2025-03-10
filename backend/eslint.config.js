@@ -26,7 +26,7 @@ export default [
       'no-console': 'warn',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'off',
-      'quotes': ['error', 'double', { 'avoidEscape': true }]
+      'quotes': ['error', 'double', { 'avoidEscape': true }],
     },
   },
 ];

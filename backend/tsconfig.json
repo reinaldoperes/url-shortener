@@ -17,8 +17,9 @@
       "@repositories/*": ["infrastructure/repositories/*"],
       "@useCases/*": ["application/use-cases/*"],
       "@models/*": ["infrastructure/database/models/*"]
-    }
+    },
+    "typeRoots": ["./src/types", "./node_modules/@types"]
   },
-  "include": ["src"],
+  "include": ["src/**/*.ts", "src/types/express.d.ts"],
   "exclude": ["node_modules"]
 }
