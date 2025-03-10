@@ -9,4 +9,12 @@ export class UrlRepository {
   async findBySlug(slug: string): Promise<IUrl | null> {
     return UrlModel.findOne({ slug }).exec();
   }
+
+  async findById(urlId: string): Promise<IUrl | null> {
+    return UrlModel.findById(urlId).exec();
+  }
+
+  async update(url: IUrl): Promise<IUrl> {
+    return url.save();
+  }
 }
