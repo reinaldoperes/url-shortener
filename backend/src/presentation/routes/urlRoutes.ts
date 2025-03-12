@@ -33,4 +33,10 @@ urlRoutes.put(
   asyncHandler(urlController.updateSlug.bind(urlController)),
 );
 
+urlRoutes.delete(
+  "/:urlId",
+  authMiddleware,
+  asyncHandler(urlController.deleteUrl.bind(urlController)),
+);
+
 export { urlRoutes };
