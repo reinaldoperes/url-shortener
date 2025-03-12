@@ -1,0 +1,4 @@
+PORT=5000
+MONGO_URI=mongodb://admin:secret@url-shortener-mongodb:27017/url-shortener?authSource=admin
+JWT_SECRET=U@JrGJ^VG\/E66dF
+BASE_URL=http://localhost:5000
