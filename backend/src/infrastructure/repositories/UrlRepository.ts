@@ -21,4 +21,8 @@ export class UrlRepository {
   async deleteById(urlId: string): Promise<void> {
     await UrlModel.findByIdAndDelete(urlId).exec();
   }
+
+  async findAllByUserId(userId: string): Promise<IUrl[]> {
+    return UrlModel.find({ createdBy: userId }).sort({ createdAt: -1 }).exec();
+  }
 }
