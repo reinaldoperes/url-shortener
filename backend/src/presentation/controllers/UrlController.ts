@@ -22,16 +22,28 @@ export class UrlController {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const { originalUrl, customSlug } = req.body;
+      const { originalUrl, customSlug, expiresInDays } = req.body;
 
       if (!originalUrl) {
         return res.status(400).json({ error: "Original URL is required" });
+      }
+
+      let expires = undefined;
+      if (expiresInDays !== undefined) {
+        const parsedExpires = Number(expiresInDays);
+        if (isNaN(parsedExpires) || parsedExpires <= 0) {
+          return res.status(400).json({
+            error: "Invalid expiration time. It must be a positive number.",
+          });
+        }
+        expires = parsedExpires;
       }
 
       const result = await shortenUrl.execute(
         originalUrl,
         req.user.id,
         customSlug,
+        expires,
       );
       return res.status(201).json(result);
     } catch (error) {
@@ -45,13 +57,29 @@ export class UrlController {
   static async redirect(req: Request, res: Response) {
     try {
       const { slug } = req.params;
-      const originalUrl = await getOriginalUrl.execute(slug);
+      const result = await getOriginalUrl.execute(slug);
 
-      if (!originalUrl) {
-        return res.status(404).json({ error: "URL not found" });
+      if (!result.success) {
+        if (result.error === "URL not found") {
+          // Status 404: Not Found
+          return res.status(404).json({ error: result.error });
+        }
+        if (result.error === "URL has expired") {
+          // Status 410: Gone
+          return res.status(410).json({ error: result.error });
+        }
+        // Status 400: Bad Request
+        return res.status(400).json({ error: "Unknown error" });
       }
+      res.setHeader(
+        "Cache-Control",
+        "no-store, no-cache, must-revalidate, proxy-revalidate",
+      );
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
 
-      return res.redirect(301, originalUrl);
+      // Status 301: Moved Permanently
+      return res.redirect(301, result.originalUrl!);
     } catch {
       return res.status(500).json({ error: "Internal server error" });
     }
