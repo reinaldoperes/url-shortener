@@ -14,11 +14,22 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<string | null>(localStorage.getItem("user"));
-  const [token, setToken] = useState<string | null>(
-    localStorage.getItem("token"),
-  );
   const navigate = useNavigate();
+  const [user, setUser] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const storedToken = localStorage.getItem("token");
+    const storedUser = localStorage.getItem("user");
+
+    if (storedToken && storedUser) {
+      setToken(storedToken);
+      setUser(storedUser);
+    }
+
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     if (token) {
@@ -39,7 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const response = await loginApi(email, password);
       setToken(response.token);
       setUser(email);
-      navigate("/");
+      navigate("/dashboard");
     } catch {
       throw new Error("Invalid credentials");
     }
@@ -57,8 +68,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     setToken(null);
     setUser(null);
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
     navigate("/login");
   };
+
+  if (loading) {
+    return null;
+  }
 
   return (
     <AuthContext.Provider value={{ user, token, login, register, logout }}>
