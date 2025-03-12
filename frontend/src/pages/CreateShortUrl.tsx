@@ -51,7 +51,7 @@ const CreateShortUrl = () => {
 
       if (response.status === 201) {
         toast.success(
-          `URL shortened successfully! Slug: ${response.data.slug}`,
+          `URL shortened successfully! Slug: ${response.data.shortUrl}`,
         );
         navigate("/dashboard");
       } else {
