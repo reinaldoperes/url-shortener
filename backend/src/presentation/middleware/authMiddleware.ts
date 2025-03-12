@@ -10,7 +10,7 @@ export function authMiddleware(
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     res.status(401).json({ error: "Unauthorized" });
-    return next();
+    return;
   }
 
   const token = authHeader.split(" ")[1];
@@ -21,9 +21,8 @@ export function authMiddleware(
       email: string;
     };
     req.user = decoded;
+    next();
   } catch {
     res.status(401).json({ error: "Invalid token" });
   }
-
-  return next();
 }
