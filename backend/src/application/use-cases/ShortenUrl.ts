@@ -8,7 +8,12 @@ export class ShortenUrl {
     this.urlRepository = urlRepository;
   }
 
-  async execute(originalUrl: string, userId: string, customSlug?: string) {
+  async execute(
+    originalUrl: string,
+    userId: string,
+    customSlug?: string,
+    expiresInDays?: number,
+  ) {
     if (!this.isValidUrl(originalUrl)) {
       throw new Error("Invalid URL. Please provide a valid URL.");
     }
@@ -32,9 +37,23 @@ export class ShortenUrl {
       } while (await this.urlRepository.findBySlug(slug));
     }
 
-    const newUrl = await this.urlRepository.save(originalUrl, slug, userId);
+    let expiresAt: Date | undefined;
+    if (expiresInDays && expiresInDays > 0) {
+      expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000);
+    }
 
-    return { id: newUrl._id, shortUrl: newUrl.shortUrl };
+    const newUrl = await this.urlRepository.save(
+      originalUrl,
+      slug,
+      userId,
+      expiresAt,
+    );
+
+    return {
+      id: newUrl._id,
+      shortUrl: newUrl.shortUrl,
+      expiresAt: newUrl.expiresAt?.toISOString(),
+    };
   }
 
   private isValidUrl(url: string): boolean {
