@@ -39,4 +39,10 @@ urlRoutes.delete(
   asyncHandler(urlController.deleteUrl.bind(urlController)),
 );
 
+urlRoutes.get(
+  "/",
+  authMiddleware,
+  asyncHandler(urlController.listUserUrls.bind(urlController)),
+);
+
 export { urlRoutes };
