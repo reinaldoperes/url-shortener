@@ -13,6 +13,18 @@ services:
       - ./backend:/app
     command: yarn dev
 
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_URL=http://localhost:5000/api
+    container_name: url-shortener-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
   mongodb:
     image: mongo
     container_name: url-shortener-mongodb
