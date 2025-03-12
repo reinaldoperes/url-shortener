@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { DeleteUrl } from "../../application/use-cases/DeleteUrl.js";
 import { UpdateSlug } from "../../application/use-cases/UpdateSlug.js";
 import { UrlRepository } from "../../infrastructure/repositories/UrlRepository.js";
 import { ShortenUrl } from "../../application/use-cases/ShortenUrl.js";
@@ -6,6 +7,7 @@ import { GetOriginalUrl } from "../../application/use-cases/GetOriginalUrl.js";
 import { GetUrlStats } from "../../application/use-cases/GetUrlStats.js";
 
 const urlRepository = new UrlRepository();
+const deleteUrl = new DeleteUrl(urlRepository);
 const shortenUrl = new ShortenUrl(urlRepository);
 const getOriginalUrl = new GetOriginalUrl();
 const getUrlStats = new GetUrlStats();
@@ -83,6 +85,24 @@ export class UrlController {
         newSlug,
       );
       return res.json({ message: "Slug updated successfully", updatedUrl });
+    } catch (error) {
+      if (error instanceof Error) {
+        return res.status(400).json({ error: error.message });
+      }
+      return res.status(500).json({ error: "An unexpected error occurred" });
+    }
+  }
+
+  static async deleteUrl(req: Request, res: Response) {
+    try {
+      const { urlId } = req.params;
+
+      if (!req.user) {
+        return res.status(401).json({ error: "Unauthorized access" });
+      }
+
+      await deleteUrl.execute(urlId, req.user.id);
+      return res.json({ message: "URL deleted successfully." });
     } catch (error) {
       if (error instanceof Error) {
         return res.status(400).json({ error: error.message });

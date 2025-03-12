@@ -17,4 +17,8 @@ export class UrlRepository {
   async update(url: IUrl): Promise<IUrl> {
     return url.save();
   }
+
+  async deleteById(urlId: string): Promise<void> {
+    await UrlModel.findByIdAndDelete(urlId).exec();
+  }
 }
