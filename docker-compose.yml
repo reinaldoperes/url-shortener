@@ -1,4 +1,18 @@
 services:
+  backend:
+    build: ./backend
+    container_name: url-shortener-backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - mongodb
+    volumes:
+      - ./backend:/app
+    command: yarn dev
+
   mongodb:
     image: mongo
     container_name: url-shortener-mongodb
