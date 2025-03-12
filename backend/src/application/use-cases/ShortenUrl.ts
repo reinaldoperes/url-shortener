@@ -15,7 +15,7 @@ export class ShortenUrl {
     expiresInDays?: number,
   ) {
     if (!this.isValidUrl(originalUrl)) {
-      throw new Error("Invalid URL. Please provide a valid URL.");
+      throw new Error("Invalid URL. Please provide a valid HTTP or HTTPS URL.");
     }
 
     let slug = customSlug?.trim();
@@ -38,8 +38,14 @@ export class ShortenUrl {
     }
 
     let expiresAt: Date | undefined;
-    if (expiresInDays && expiresInDays > 0) {
-      expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000);
+    if (expiresInDays !== undefined) {
+      const parsedExpires = Number(expiresInDays);
+      if (isNaN(parsedExpires) || parsedExpires <= 0) {
+        throw new Error(
+          "Invalid expiration time. It must be a positive number.",
+        );
+      }
+      expiresAt = new Date(Date.now() + parsedExpires * 24 * 60 * 60 * 1000);
     }
 
     const newUrl = await this.urlRepository.save(
@@ -58,7 +64,12 @@ export class ShortenUrl {
 
   private isValidUrl(url: string): boolean {
     try {
-      new URL(url);
+      const parsedUrl = new URL(url);
+
+      if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+        return false;
+      }
+
       return true;
     } catch {
       return false;
