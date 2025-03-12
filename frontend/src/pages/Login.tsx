@@ -34,8 +34,10 @@ const Login = () => {
       await login(data.email, data.password);
       toast.success("Login successful!");
       navigate("/");
-    } catch {
-      toast.error("Invalid credentials. Please try again.");
+    } catch (error: any) {
+      const apiError =
+        error.response?.data?.errors?.[0]?.detail || "Invalid credentials.";
+      toast.error(apiError);
     } finally {
       setLoading(false);
     }

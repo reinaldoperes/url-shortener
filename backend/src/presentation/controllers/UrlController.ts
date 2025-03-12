@@ -6,6 +6,10 @@ import { ListUserUrls } from "../../application/use-cases/ListUserUrls.js";
 import { UpdateSlug } from "../../application/use-cases/UpdateSlug.js";
 import { UrlRepository } from "../../infrastructure/repositories/UrlRepository.js";
 import { ShortenUrl } from "../../application/use-cases/ShortenUrl.js";
+import {
+  serializeJsonApi,
+  serializeError,
+} from "../../utils/jsonApiSerializer.js";
 
 const urlRepository = new UrlRepository();
 const deleteUrl = new DeleteUrl(urlRepository);
@@ -19,22 +23,29 @@ export class UrlController {
   static async shorten(req: Request, res: Response) {
     try {
       if (!req.user) {
-        return res.status(401).json({ error: "Unauthorized" });
+        return res.status(401).json(serializeError(401, "Unauthorized"));
       }
 
       const { originalUrl, customSlug, expiresInDays } = req.body;
 
       if (!originalUrl) {
-        return res.status(400).json({ error: "Original URL is required" });
+        return res
+          .status(400)
+          .json(serializeError(400, "Original URL is required"));
       }
 
       let expires = undefined;
       if (expiresInDays !== undefined) {
         const parsedExpires = Number(expiresInDays);
         if (isNaN(parsedExpires) || parsedExpires <= 0) {
-          return res.status(400).json({
-            error: "Invalid expiration time. It must be a positive number.",
-          });
+          return res
+            .status(400)
+            .json(
+              serializeError(
+                400,
+                "Invalid expiration time. Must be a positive number.",
+              ),
+            );
         }
         expires = parsedExpires;
       }
@@ -45,12 +56,11 @@ export class UrlController {
         customSlug,
         expires,
       );
-      return res.status(201).json(result);
-    } catch (error) {
-      if (error instanceof Error) {
-        return res.status(400).json({ error: error.message });
-      }
-      return res.status(500).json({ error: "An unexpected error occurred" });
+      return res.status(201).json(serializeJsonApi("urls", result));
+    } catch {
+      return res
+        .status(500)
+        .json(serializeError(500, "An unexpected error occurred"));
     }
   }
 
@@ -60,17 +70,16 @@ export class UrlController {
       const result = await getOriginalUrl.execute(slug);
 
       if (!result.success) {
-        if (result.error === "URL not found") {
-          // Status 404: Not Found
-          return res.status(404).json({ error: result.error });
-        }
-        if (result.error === "URL has expired") {
-          // Status 410: Gone
-          return res.status(410).json({ error: result.error });
-        }
-        // Status 400: Bad Request
-        return res.status(400).json({ error: "Unknown error" });
+        const errorMessage =
+          result.error === "URL has expired"
+            ? "URL has expired"
+            : "URL not found";
+        const statusCode = result.error === "URL has expired" ? 410 : 404;
+        return res
+          .status(statusCode)
+          .json(serializeError(statusCode, errorMessage));
       }
+
       res.setHeader(
         "Cache-Control",
         "no-store, no-cache, must-revalidate, proxy-revalidate",
@@ -78,10 +87,9 @@ export class UrlController {
       res.setHeader("Pragma", "no-cache");
       res.setHeader("Expires", "0");
 
-      // Status 301: Moved Permanently
       return res.redirect(301, result.originalUrl!);
     } catch {
-      return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json(serializeError(500, "Internal server error"));
     }
   }
 
@@ -91,12 +99,12 @@ export class UrlController {
       const stats = await getUrlStats.execute(slug);
 
       if (!stats) {
-        return res.status(404).json({ error: "URL not found" });
+        return res.status(404).json(serializeError(404, "URL not found"));
       }
 
-      return res.json(stats);
+      return res.json(serializeJsonApi("url-stats", stats));
     } catch {
-      return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json(serializeError(500, "Internal server error"));
     }
   }
 
@@ -106,7 +114,9 @@ export class UrlController {
       const { newSlug } = req.body;
 
       if (!newSlug) {
-        return res.status(400).json({ error: "New slug is required." });
+        return res
+          .status(400)
+          .json(serializeError(400, "New slug is required."));
       }
 
       const updatedUrl = await updateSlug.execute(
@@ -114,12 +124,17 @@ export class UrlController {
         req.user?.id!,
         newSlug,
       );
-      return res.json({ message: "Slug updated successfully", updatedUrl });
+      return res.json(serializeJsonApi("urls", updatedUrl));
     } catch (error) {
-      if (error instanceof Error) {
-        return res.status(400).json({ error: error.message });
-      }
-      return res.status(500).json({ error: "An unexpected error occurred" });
+      return res
+        .status(400)
+        .json(
+          serializeError(
+            400,
+            "Failed to update slug",
+            error instanceof Error ? error.message : "Unknown error",
+          ),
+        );
     }
   }
 
@@ -128,32 +143,38 @@ export class UrlController {
       const { urlId } = req.params;
 
       if (!req.user) {
-        return res.status(401).json({ error: "Unauthorized access" });
+        return res.status(401).json(serializeError(401, "Unauthorized access"));
       }
 
       await deleteUrl.execute(urlId, req.user.id);
-      return res.json({ message: "URL deleted successfully." });
+      return res.json(
+        serializeJsonApi("urls", { message: "URL deleted successfully." }),
+      );
     } catch (error) {
-      if (error instanceof Error) {
-        return res.status(400).json({ error: error.message });
-      }
-      return res.status(500).json({ error: "An unexpected error occurred" });
+      return res
+        .status(400)
+        .json(
+          serializeError(
+            400,
+            "Failed to delete URL",
+            error instanceof Error ? error.message : "Unknown error",
+          ),
+        );
     }
   }
 
   static async listUserUrls(req: Request, res: Response) {
     try {
       if (!req.user) {
-        return res.status(401).json({ error: "Unauthorized access" });
+        return res.status(401).json(serializeError(401, "Unauthorized access"));
       }
 
       const urls = await listUserUrls.execute(req.user.id);
-      return res.json(urls);
-    } catch (error) {
-      if (error instanceof Error) {
-        return res.status(400).json({ error: error.message });
-      }
-      return res.status(500).json({ error: "An unexpected error occurred" });
+      return res.json(serializeJsonApi("urls", urls));
+    } catch {
+      return res
+        .status(500)
+        .json(serializeError(500, "An unexpected error occurred"));
     }
   }
 }

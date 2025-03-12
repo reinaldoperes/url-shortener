@@ -47,12 +47,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await loginApi(email, password);
-      setToken(response.token);
+      const token = await loginApi(email, password);
+      setToken(token);
       setUser(email);
       navigate("/dashboard");
-    } catch {
-      throw new Error("Invalid credentials");
+    } catch (error: any) {
+      throw new Error(
+        error.response?.data?.errors?.[0]?.detail || "Invalid credentials",
+      );
     }
   };
 
@@ -60,8 +62,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       await registerApi(email, password);
       await login(email, password);
-    } catch {
-      throw new Error("Registration failed");
+    } catch (error: any) {
+      throw new Error(
+        error.response?.data?.errors?.[0]?.detail || "Registration failed",
+      );
     }
   };
 

@@ -25,12 +25,11 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import AddIcon from "@mui/icons-material/Add";
 import { useAuth } from "../hooks/useAuth";
 import { toast } from "react-toastify";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { updateSlug } from "../api/urls";
+import { updateSlug, deleteUrl, getUserUrls } from "../api/urls";
 
 interface Url {
-  _id: string;
+  id: string;
   shortUrl: string;
   originalUrl: string;
   slug: string;
@@ -58,15 +57,12 @@ const Dashboard = () => {
 
     const fetchUrls = async () => {
       try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/url`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
+        const response = await getUserUrls();
+        setUrls(response);
+      } catch (error: any) {
+        toast.error(
+          error.response?.data?.errors?.[0]?.detail || "Failed to load URLs.",
         );
-        setUrls(response.data);
-      } catch {
-        toast.error("Failed to load URLs.");
       } finally {
         setLoading(false);
       }
@@ -94,16 +90,13 @@ const Dashboard = () => {
     if (!selectedUrlToDelete) return;
 
     try {
-      await axios.delete(
-        `${import.meta.env.VITE_API_URL}/url/${selectedUrlToDelete}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-      setUrls(urls.filter((url) => url._id !== selectedUrlToDelete));
+      await deleteUrl(selectedUrlToDelete);
+      setUrls(urls.filter((url) => url.id !== selectedUrlToDelete));
       toast.success("URL deleted successfully.");
-    } catch {
-      toast.error("Failed to delete URL.");
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.errors?.[0]?.detail || "Failed to delete URL.",
+      );
     } finally {
       handleCloseDeleteDialog();
     }
@@ -134,7 +127,7 @@ const Dashboard = () => {
       await updateSlug(urlId, newSlug);
       setUrls(
         urls.map((url) =>
-          url._id === urlId
+          url.id === urlId
             ? {
                 ...url,
                 slug: newSlug,
@@ -146,7 +139,9 @@ const Dashboard = () => {
       toast.success("Slug updated successfully.");
       setEditingSlug(null);
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Failed to update slug.");
+      toast.error(
+        error.response?.data?.errors?.[0]?.detail || "Failed to update slug.",
+      );
     }
   };
 
@@ -183,7 +178,7 @@ const Dashboard = () => {
       ) : (
         <List>
           {urls.map((url) => (
-            <ListItem key={url._id} divider>
+            <ListItem key={url.id} divider>
               <ListItemText
                 primary={
                   editingSlug === url.slug ? (
@@ -193,7 +188,7 @@ const Dashboard = () => {
                       value={newSlug}
                       onChange={(e) => setNewSlug(e.target.value)}
                       onKeyPress={(e) =>
-                        e.key === "Enter" && handleSaveClick(url._id)
+                        e.key === "Enter" && handleSaveClick(url.id)
                       }
                     />
                   ) : (
@@ -216,7 +211,7 @@ const Dashboard = () => {
               {editingSlug === url.slug ? (
                 <>
                   <Tooltip title="Save">
-                    <IconButton onClick={() => handleSaveClick(url._id)}>
+                    <IconButton onClick={() => handleSaveClick(url.id)}>
                       <SaveIcon />
                     </IconButton>
                   </Tooltip>
@@ -234,7 +229,7 @@ const Dashboard = () => {
                 </Tooltip>
               )}
               <Tooltip title="Delete">
-                <IconButton onClick={() => handleOpenDeleteDialog(url._id)}>
+                <IconButton onClick={() => handleOpenDeleteDialog(url.id)}>
                   <DeleteIcon color="error" />
                 </IconButton>
               </Tooltip>
@@ -253,7 +248,6 @@ const Dashboard = () => {
         Logout
       </Button>
 
-      {/* Dialog de Confirmação de Exclusão */}
       <Dialog open={deleteDialogOpen} onClose={handleCloseDeleteDialog}>
         <DialogTitle>Confirm Deletion</DialogTitle>
         <DialogContent>

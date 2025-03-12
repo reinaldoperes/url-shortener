@@ -2,6 +2,10 @@ import { Request, Response } from "express";
 import { UserRepository } from "../../infrastructure/repositories/UserRepository.js";
 import { RegisterUser } from "../../application/use-cases/RegisterUser.js";
 import { LoginUser } from "../../application/use-cases/LoginUser.js";
+import {
+  serializeJsonApi,
+  serializeError,
+} from "../../utils/jsonApiSerializer.js";
 
 export class AuthController {
   private userRepository: UserRepository;
@@ -23,15 +27,17 @@ export class AuthController {
       if (!email || !password) {
         return res
           .status(400)
-          .json({ error: "Email and password are required" });
+          .json(serializeError(400, "Email and password are required"));
       }
 
       const user = await this.registerUser.execute(email, password);
       return res
         .status(201)
-        .json({ message: "User created", userId: user._id });
+        .json(serializeJsonApi("users", { id: user._id, email: user.email }));
     } catch (error: any) {
-      return res.status(400).json({ error: error.message });
+      return res
+        .status(400)
+        .json(serializeError(400, "Registration failed", error.message));
     }
   }
 
@@ -41,13 +47,15 @@ export class AuthController {
       if (!email || !password) {
         return res
           .status(400)
-          .json({ error: "Email and password are required" });
+          .json(serializeError(400, "Email and password are required"));
       }
 
       const token = await this.loginUser.execute(email, password);
-      return res.json({ token });
+      return res.json(serializeJsonApi("tokens", { token }));
     } catch (error: any) {
-      return res.status(401).json({ error: error.message });
+      return res
+        .status(401)
+        .json(serializeError(401, "Authentication failed", error.message));
     }
   }
 }

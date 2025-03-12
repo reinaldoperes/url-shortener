@@ -34,6 +34,9 @@ export class UrlRepository {
   }
 
   async findAllByUserId(userId: string): Promise<IUrl[]> {
-    return UrlModel.find({ createdBy: userId }).sort({ createdAt: -1 }).exec();
+    return UrlModel.find({ createdBy: userId })
+      .sort({ createdAt: -1 })
+      .lean()
+      .exec();
   }
 }
